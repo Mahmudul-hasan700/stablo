@@ -1,0 +1,33 @@
+/// <reference types="react" />
+
+import { ObjectInputProps } from 'sanity';
+import { Plugin as Plugin_2 } from 'sanity';
+import { PreviewProps } from 'sanity';
+
+export declare const table: Plugin_2<void>;
+
+export declare const TableComponent: (props: TableProps) => JSX.Element;
+
+export declare const TablePreview: (
+  props: ValueProps & PreviewProps
+) => JSX.Element;
+
+export declare interface TableProps extends ObjectInputProps<TableValue> {}
+
+export declare type TableRow = {
+  _type: string;
+  _key: string;
+  cells: string[];
+};
+
+export declare interface TableValue {
+  _type: 'table';
+  rows: TableRow[];
+}
+
+declare interface ValueProps {
+  rows?: TableRow[];
+  title?: string;
+}
+
+export {};

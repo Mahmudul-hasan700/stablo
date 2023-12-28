@@ -1,0 +1,379 @@
+'use strict';
+
+var _templateObject, _templateObject2, _templateObject3, _templateObject4, _templateObject5;
+function _taggedTemplateLiteral(strings, raw) { if (!raw) { raw = strings.slice(0); } return Object.freeze(Object.defineProperties(strings, { raw: { value: Object.freeze(raw) } })); }
+Object.defineProperty(exports, '__esModule', {
+  value: true
+});
+var jsxRuntime = require('react/jsx-runtime');
+var React = require('react');
+var PhotoAlbum = require('react-photo-album');
+var rxjs = require('rxjs');
+var ui = require('@sanity/ui');
+var styled = require('styled-components');
+var operators = require('rxjs/operators');
+var InfiniteScroll = require('react-infinite-scroll-component');
+var sanity = require('sanity');
+function _interopDefaultCompat(e) {
+  return e && typeof e === 'object' && 'default' in e ? e : {
+    default: e
+  };
+}
+var React__default = /*#__PURE__*/_interopDefaultCompat(React);
+var PhotoAlbum__default = /*#__PURE__*/_interopDefaultCompat(PhotoAlbum);
+var styled__default = /*#__PURE__*/_interopDefaultCompat(styled);
+var InfiniteScroll__default = /*#__PURE__*/_interopDefaultCompat(InfiniteScroll);
+const Root = styled__default.default.div(_templateObject || (_templateObject = _taggedTemplateLiteral(["\n  overflow: hidden;\n  background-origin: content-box;\n  background-repeat: no-repeat;\n  background-clip: border-box;\n  background-size: cover;\n  position: relative;\n  outline: none !important;\n  border: ", ";\n  box-sizing: content-box;\n  user-drag: none;\n\n  &:hover {\n    opacity: 0.85;\n  }\n\n  &:focus,\n  &:active {\n    border: 1px solid var(--input-border-color-focus);\n    box-shadow: inset 0 0 0 3px var(--input-border-color-focus);\n  }\n"])), _ref => {
+  let {
+    studioTheme
+  } = _ref;
+  return "1px solid ".concat(studioTheme.color.card.enabled.border);
+});
+const CreditLineLink = styled__default.default.a(_templateObject2 || (_templateObject2 = _taggedTemplateLiteral(["\n  text-decoration: none;\n  cursor: pointer;\n"])));
+const CreditLine = styled__default.default(ui.Card)(_templateObject3 || (_templateObject3 = _taggedTemplateLiteral(["\n  ", ";\n  user-drag: none;\n  position: absolute;\n  background-color: var(--creditline-bg);\n  bottom: 0;\n\n  [data-ui='Text'] {\n    color: var(--creditline-fg);\n  }\n"])), _ref2 => {
+  let {
+    theme
+  } = _ref2;
+  return "\n     --creditline-fg: ".concat(theme.sanity.color.card.enabled.fg, ";\n     --creditline-bg: ").concat(theme.sanity.color.card.enabled.bg, ";\n   ");
+});
+const UTM_SOURCE = "sanity-plugin-asset-source-unsplash";
+function Photo(props) {
+  const {
+    onClick,
+    data,
+    onKeyDown,
+    onFocus,
+    active,
+    width,
+    height
+  } = props;
+  const rootElm = React.useRef(null);
+  const prevActive = React.useRef(false);
+  const handleClick = React.useCallback(() => {
+    onClick(data);
+  }, [onClick, data]);
+  const handleCreditLineClicked = React.useCallback(event => {
+    event.stopPropagation();
+    const url = "".concat(data.links.html, "?utm_source=").concat(encodeURIComponent(UTM_SOURCE), "&utm_medium=referral");
+    window.open(url, data.id, "noreferrer,noopener");
+  }, [data]);
+  const handleKeyDown = React.useCallback(event => {
+    onKeyDown(event);
+    if (event.keyCode === 13) {
+      onClick(data);
+    }
+  }, [onKeyDown, data, onClick]);
+  const handleMouseDown = React.useCallback(() => {
+    onFocus(data);
+  }, [onFocus, data]);
+  React.useEffect(() => {
+    if (!prevActive.current && active && rootElm.current) {
+      rootElm.current.focus();
+      onFocus(data);
+    }
+    prevActive.current = active;
+  }, [active]);
+  const src = data.urls.small;
+  const userName = data.user.name;
+  const theme = ui.useTheme().sanity;
+  return /* @__PURE__ */jsxRuntime.jsx(Root, {
+    ref: rootElm,
+    studioTheme: theme,
+    title: "Select image by ".concat(userName, " from Unsplash"),
+    tabIndex: 0,
+    onKeyDown: handleKeyDown,
+    onMouseDown: handleMouseDown,
+    style: {
+      width: "".concat(width, "px"),
+      height: "".concat(height, "px"),
+      backgroundImage: "url(\"".concat(src, "\")")
+    },
+    onClick: handleClick,
+    children: /* @__PURE__ */jsxRuntime.jsx(CreditLineLink, {
+      onClick: handleCreditLineClicked,
+      children: /* @__PURE__ */jsxRuntime.jsx(CreditLine, {
+        padding: 2,
+        radius: 2,
+        margin: 2,
+        children: /* @__PURE__ */jsxRuntime.jsxs(ui.Text, {
+          size: 1,
+          title: "Open image by ".concat(userName, " on Unsplash in new window"),
+          children: ["By @", data.user.username]
+        })
+      })
+    })
+  });
+}
+const fetchSearch = (client, query, page, perPage) => rxjs.defer(() => client.observable.request({
+  url: "/addons/unsplash/search/photos?query=".concat(encodeURIComponent(query), "&page=").concat(page, "&per_page=").concat(perPage),
+  withCredentials: true,
+  method: "GET"
+}));
+const fetchList = (client, type, page, perPage) => rxjs.defer(() => client.observable.request({
+  url: "/addons/unsplash/photos?order_by=".concat(type, "&page=").concat(page, "&per_page=").concat(perPage),
+  withCredentials: true,
+  method: "GET"
+}));
+function fetchDownloadUrl(client, photo) {
+  const downloadUrl = photo.links.download_location.replace("https://api.unsplash.com", "/addons/unsplash");
+  return client.request({
+    url: downloadUrl,
+    withCredentials: true,
+    method: "GET"
+  }).then(result => {
+    return result.url;
+  });
+}
+const search = (client, query, page, resultsPerPage) => {
+  return rxjs.concat(query.pipe(operators.withLatestFrom(page), operators.debounceTime(500), operators.distinctUntilChanged(), operators.switchMap(_ref3 => {
+    let [q, p] = _ref3;
+    if (q) {
+      return fetchSearch(client, q, p, resultsPerPage).pipe(operators.distinctUntilChanged(), operators.map(result => result.results));
+    }
+    return fetchList(client, "popular", p, resultsPerPage);
+  })));
+};
+const Search = styled__default.default(ui.Stack)(_templateObject4 || (_templateObject4 = _taggedTemplateLiteral(["\n  position: sticky;\n  top: 0;\n  z-index: 1;\n"])));
+styled__default.default.div(_templateObject5 || (_templateObject5 = _taggedTemplateLiteral(["\n  overflow-y: auto;\n  max-height: 80vh;\n"])));
+const RESULTS_PER_PAGE = 42;
+const PHOTO_SPACING = 2;
+const PHOTO_PADDING = 1;
+function UnsplashAssetSource(props) {
+  const client = sanity.useClient({
+    apiVersion: "2022-09-01"
+  });
+  return /* @__PURE__ */jsxRuntime.jsx(UnsplashAssetSourceInternal, {
+    ...props,
+    client
+  });
+}
+class UnsplashAssetSourceInternal extends React__default.default.Component {
+  constructor() {
+    super(...arguments);
+    this.state = {
+      cursor: 0,
+      query: "",
+      page: 1,
+      searchResults: [[]],
+      isLoading: true
+    };
+    this.searchSubscription = null;
+    this.searchSubject$ = new rxjs.BehaviorSubject("");
+    this.pageSubject$ = new rxjs.BehaviorSubject(1);
+    this.handleSelect = photo => {
+      this.setState({
+        isLoading: true
+      });
+      return fetchDownloadUrl(this.props.client, photo).then(downloadUrl => {
+        const description = photo.description || void 0;
+        const asset = {
+          kind: "url",
+          value: downloadUrl,
+          assetDocumentProps: {
+            _type: "sanity.imageAsset",
+            source: {
+              name: "unsplash",
+              id: photo.id,
+              url: photo.links.html
+            },
+            description,
+            creditLine: "".concat(photo.user.name, " by Unsplash")
+          }
+        };
+        this.props.onSelect([asset]);
+      });
+    };
+    this.handleClose = () => {
+      this.props.onClose();
+    };
+    this.handleSearchTermChanged = event => {
+      const query = event.currentTarget.value;
+      this.setState({
+        query,
+        page: 1,
+        searchResults: [[]],
+        isLoading: true,
+        cursor: 0
+      });
+      this.pageSubject$.next(1);
+      this.searchSubject$.next(query);
+    };
+    this.handleScollerLoadMore = () => {
+      const nextPage = this.state.page + 1;
+      this.setState({
+        page: nextPage,
+        isLoading: true
+      });
+      this.pageSubject$.next(nextPage);
+      this.searchSubject$.next(this.state.query);
+    };
+    this.handleKeyDown = event => {
+      const {
+        cursor
+      } = this.state;
+      if ((event.keyCode === 38 || event.keyCode === 37) && cursor > 0) {
+        this.setState(prevState => ({
+          cursor: prevState.cursor - 1
+        }));
+      } else if ((event.keyCode === 40 || event.keyCode === 39) && cursor < this.getPhotos().length - 1) {
+        this.setState(prevState => ({
+          cursor: prevState.cursor + 1
+        }));
+      }
+    };
+    this.updateCursor = photo => {
+      const index = this.getPhotos().findIndex(result => result.id === photo.id);
+      this.setState({
+        cursor: index
+      });
+    };
+    this.renderImage = props => {
+      const {
+        photo,
+        layout
+      } = props;
+      const active = this.getPhotos().findIndex(result => result.id === photo.data.id) === this.state.cursor || false;
+      return /* @__PURE__ */jsxRuntime.jsx(Photo, {
+        onClick: this.handleSelect.bind(photo.data),
+        onKeyDown: this.handleKeyDown,
+        data: photo.data,
+        width: layout.width,
+        height: layout.height,
+        active,
+        onFocus: this.updateCursor
+      });
+    };
+  }
+  componentDidMount() {
+    this.searchSubscription = search(this.props.client, this.searchSubject$, this.pageSubject$, RESULTS_PER_PAGE).subscribe({
+      next: results => {
+        this.setState(prev => ({
+          searchResults: [...prev.searchResults, results],
+          isLoading: false
+        }));
+      }
+    });
+  }
+  componentWillUnmount() {
+    if (this.searchSubscription) {
+      this.searchSubscription.unsubscribe();
+    }
+  }
+  getPhotos() {
+    return this.state.searchResults.flat();
+  }
+  render() {
+    const {
+      query,
+      searchResults,
+      isLoading
+    } = this.state;
+    return /* @__PURE__ */jsxRuntime.jsx(ui.Dialog, {
+      id: "unsplash-asset-source",
+      header: "Select image from Unsplash",
+      onClose: this.handleClose,
+      open: true,
+      width: 4,
+      children: /* @__PURE__ */jsxRuntime.jsxs(ui.Stack, {
+        space: 3,
+        padding: 4,
+        children: [/* @__PURE__ */jsxRuntime.jsx(ui.Card, {
+          children: /* @__PURE__ */jsxRuntime.jsxs(Search, {
+            space: 3,
+            children: [/* @__PURE__ */jsxRuntime.jsx(ui.Text, {
+              size: 1,
+              weight: "semibold",
+              children: "Search Unsplash"
+            }), /* @__PURE__ */jsxRuntime.jsx(ui.TextInput, {
+              label: "Search Unsplash.com",
+              placeholder: "Topics or colors",
+              value: query,
+              onChange: this.handleSearchTermChanged
+            })]
+          })
+        }), !isLoading && this.getPhotos().length === 0 && /* @__PURE__ */jsxRuntime.jsx(ui.Text, {
+          size: 1,
+          muted: true,
+          children: "No results found"
+        }), /* @__PURE__ */jsxRuntime.jsx(InfiniteScroll__default.default, {
+          dataLength: this.getPhotos().length,
+          next: this.handleScollerLoadMore,
+          hasMore: true,
+          scrollThreshold: 0.99,
+          height: "60vh",
+          loader: /* @__PURE__ */jsxRuntime.jsx(ui.Flex, {
+            align: "center",
+            justify: "center",
+            padding: 3,
+            children: /* @__PURE__ */jsxRuntime.jsx(ui.Spinner, {
+              muted: true
+            })
+          }),
+          endMessage: /* @__PURE__ */jsxRuntime.jsx(ui.Text, {
+            size: 1,
+            muted: true,
+            children: "No more results"
+          }),
+          children: searchResults.filter(photos => photos.length > 0).map((photos, index) => /* @__PURE__ */jsxRuntime.jsx(PhotoAlbum__default.default, {
+            layout: "rows",
+            spacing: PHOTO_SPACING,
+            padding: PHOTO_PADDING,
+            targetRowHeight: width => {
+              if (width < 300) return 150;else if (width < 600) return 200;
+              return 300;
+            },
+            photos: photos.map(photo => ({
+              src: photo.urls.small,
+              width: photo.width,
+              height: photo.height,
+              key: photo.id,
+              data: photo
+            })),
+            renderPhoto: this.renderImage,
+            componentsProps: {
+              containerProps: {
+                style: {
+                  marginBottom: "".concat(PHOTO_SPACING, "px")
+                }
+              }
+            }
+          }, "gallery-".concat(query || "popular", "-").concat(index)))
+        })]
+      })
+    });
+  }
+}
+UnsplashAssetSourceInternal.defaultProps = {
+  selectedAssets: void 0
+};
+function UnsplashIcon() {
+  return /* @__PURE__ */jsxRuntime.jsxs("svg", {
+    role: "img",
+    viewBox: "0 0 25 25",
+    width: "1em",
+    height: "1em",
+    fill: "currentColor",
+    children: [/* @__PURE__ */jsxRuntime.jsx("title", {}), /* @__PURE__ */jsxRuntime.jsx("path", {
+      d: "M9 9V4h7v5H9Zm7 3h5v9H4v-9h5v5h7v-5Z"
+    })]
+  });
+}
+const unsplashAssetSource = {
+  name: "unsplash",
+  title: "Unsplash",
+  component: UnsplashAssetSource,
+  icon: UnsplashIcon
+};
+const unsplashImageAsset = sanity.definePlugin({
+  name: "asset-source-unsplash-plugin",
+  form: {
+    image: {
+      assetSources: prev => {
+        return [...prev, unsplashAssetSource];
+      }
+    }
+  }
+});
+exports.unsplashAssetSource = unsplashAssetSource;
+exports.unsplashImageAsset = unsplashImageAsset;
+//# sourceMappingURL=index.js.map
