@@ -105,7 +105,7 @@ export default function NavbarAlt(props) {
                         sizes="(max-width: 640px) 100vw, 200px"
                       />
                     ) : (
-                      <span className="block text-center">
+                      <span className="block text-center text-xl font-bold">
                         Stablo
                       </span>
                     )}
