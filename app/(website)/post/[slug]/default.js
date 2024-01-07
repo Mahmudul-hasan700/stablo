@@ -76,7 +76,7 @@ export default function Post(props) {
         </div>
       </Container>
 
-      <div className="relative z-0 mx-auto aspect-video max-w-screen-lg overflow-hidden lg:rounded-lg">
+      <div className="rounded-md relative z-0 mx-4 max-w-screen-md aspect-video overflow-hidden lg:rounded-lg">
         {imageProps && (
           <Image
             src={imageProps.src}
@@ -90,7 +90,7 @@ export default function Post(props) {
       </div>
 
       <Container>
-        <article className="mx-auto max-w-screen-md ">
+        <article className="mx-auto max-w-screen-md md:mx-4">
           <div className="prose mx-auto my-3 dark:prose-invert prose-a:text-blue-600">
             {post.body && <PortableText value={post.body} />}
           </div>
